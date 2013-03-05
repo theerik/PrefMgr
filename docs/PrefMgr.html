@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>PrefMgr.tcl</title>
+  <link rel="stylesheet" href="pycco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div class='section'>
+    <div class='docs'><h1>PrefMgr.tcl</h1></div>
+  </div>
+  <div class='clearall'>
+  <div class='section' id='section-0'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-0'>#</a>
+      </div>
+      <hr />
+<p>FILENAME:    PrefMgr.tcl</p>
+<p>AUTHOR:      ejohnson</p>
+<p>DESCRIPTION:  Preferences Manager provides methods for setting and
+              retrieving persistent data values.  Two classes of data are
+              supported:  system-wide common data, and application-
+              specific data.  Typical uses for system data are descriptors
+              of hardware interfaces (e.g., port ID's) or paths to system
+              resources.</p>
+<hr />
+<p>Copyright 2010-2013, Erik N. Johnson </p>
+<hr />
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="nb">package</span> provide PrefMgr <span class="mf">0.5</span>
+
+<span class="k">namespace</span> eval PrefMgr <span class="k">{</span>
+   <span class="k">variable</span> preferences
+   <span class="k">variable</span> sysPreferences
+   <span class="k">variable</span> prefFileName
+   <span class="k">variable</span> initDone
+   <span class="k">variable</span> sysInitDone
+   <span class="k">variable</span> debug
+   <span class="k">variable</span> sysFileName
+   <span class="k">variable</span> packageDir
+
+   <span class="k">namespace</span> export setPref getPref setSysPref getSysPref initPrefs showPrefs setDebug
+<span class="k">}</span>
+
+<span class="k">set</span> <span class="o">::</span>PrefMgr::packageDir <span class="k">[</span><span class="nb">file</span> dirname <span class="k">[</span><span class="nb">info</span> script<span class="k">]]</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-1'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-1'>#</a>
+      </div>
+      <h1></h1>
+<p>The preferences files will be stored in canonical locations.</p>
+<p>The system preferences will be in $env(LOCALAPPDATA)/sysprefs.ini,
+which is guaranteed to be defined in Windows and inherited for Cygwin,
+and is common for the system.</p>
+<p>Application preferences will be in whatever file the main application
+defines when calling initPrefs (defaults to ./prefs.ini) and since
+it's normally unique to the current directory, a given tool run in
+different directories can have different saved preferences.  The app
+preferences filename can be overridden when initPrefs is called, and
+should be overridden to be unique for each app using the package.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-2'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-2'>#</a>
+      </div>
+      <hr />
+<p>Only init debug flag if user did not already set it, allowing user to
+pre-enable the debug flag when loading the package to debug load issues.
+This requires the user to add an extra line of code to deal with 
+the namespace issues:</p>
+<p><code>namespace eval PrefMgr {variable debug}</code></p>
+<p><code>set ::PrefMgr::debug true</code></p>
+<p>For non-load-time debugging, the <strong>setDebug</strong> method allows the package user
+to dynamically enable debugging.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::debug<span class="k">]}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::debug false
+<span class="k">}</span>
+
+<span class="k">proc</span> <span class="o">::</span>PrefMgr::setDebug <span class="k">{{</span><span class="nv">debugFlag</span> false<span class="k">}}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::debug <span class="nv">$debugFlag</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-3'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-3'>#</a>
+      </div>
+      <hr />
+<p><strong>loadPrefFile</strong> is a helper proc that opens the input file and loads
+the contents into an array.  The name of the array is passed in to upvar
+it to support either the local or the system preferences files.</p>
+<p>If the file cannot be opened, we will print an error message then open the
+location where the file <em>should</em> be and touch it, creating a zero-length
+file so that we only complain once.</p>
+<p>Once the file is opened, we process the file line by line, dumping the
+input lines when in debug mode.
+We skip any comments, defined as lines starting with <code>;</code> or <code>#</code>.
+(";" is .ini file convention, "#" is Tcl convention.)  If a line isn't
+a comment, it's expected to have a format of <code>key=value</code>, and we complain
+if it doesn't (but continue anyway).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::loadPrefFile <span class="k">{</span><span class="nv">fname</span> arrayName<span class="k">}</span> <span class="k">{</span>
+   <span class="k">upvar</span> <span class="mi">0</span> <span class="nv">$arrayName</span> prefA
+
+   <span class="k">catch</span> <span class="k">{</span><span class="nb">file</span> attributes <span class="nv">$fname</span> <span class="o">-</span>hidden false<span class="k">}</span>
+   <span class="k">if</span> <span class="k">{[catch</span> <span class="k">{</span><span class="nb">open</span> <span class="nv">$fname</span> r<span class="k">}</span> prefsHandle<span class="k">]}</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;Preferences file ($fname) not found.  Creating empty file.&quot;</span>
+      <span class="k">set</span> prefsHandle <span class="k">[</span><span class="nb">open</span> <span class="nv">$fname</span> w<span class="k">]</span>
+      <span class="nb">close</span> <span class="nv">$prefsHandle</span>
+   <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+      <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
+         <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;\tpreferences file found: [glob -nocomplain $fname].\n&quot;</span>
+         <span class="nb">puts</span> <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%30s : %s&quot;</span> <span class="s2">&quot;Key&quot;</span> <span class="s2">&quot;Value&quot;</span><span class="k">]</span>
+      <span class="k">}</span>
+      <span class="k">set</span> done <span class="k">[</span><span class="nb">gets</span> <span class="nv">$prefsHandle</span> line<span class="k">]</span>
+      <span class="k">while</span> <span class="k">{</span><span class="nv">$done</span> <span class="o">!=</span> <span class="nv">-1</span><span class="k">}</span> <span class="k">{</span>
+         <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">([</span><span class="nb">string</span> index <span class="nv">$line</span> <span class="mi">0</span><span class="k">]</span> <span class="o">==</span> <span class="s2">&quot;;&quot;</span> <span class="o">||</span> <span class="err">\</span>
+               <span class="k">[</span><span class="nb">string</span> index <span class="nv">$line</span> <span class="mi">0</span><span class="k">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="k">)</span>    <span class="k">}</span> <span class="k">{</span>
+            <span class="k">if</span> <span class="k">{[</span><span class="nb">regexp</span> <span class="k">{([</span><span class="o">^</span><span class="err">=</span><span class="k">]</span><span class="o">+</span><span class="k">)</span><span class="err">=</span><span class="k">(</span><span class="nv">.</span><span class="o">*</span><span class="k">)}</span> <span class="nv">$line</span> match key value<span class="k">]}</span> <span class="k">{</span>
+               <span class="k">set</span> prefA<span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="nv">$value</span>
+               <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
+                  <span class="nb">puts</span> <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%30s : %s&quot;</span> <span class="nv">$key</span> <span class="nv">$value</span><span class="k">]</span>
+               <span class="k">}</span>
+            <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+               <span class="nb">puts</span> <span class="s2">&quot;Uninterpretable line: $line&quot;</span>
+            <span class="k">}</span>
+         <span class="k">}</span>
+         <span class="k">set</span> done <span class="k">[</span><span class="nb">gets</span> <span class="nv">$prefsHandle</span> line<span class="k">]</span>
+      <span class="k">}</span>
+      <span class="nb">close</span> <span class="nv">$prefsHandle</span>
+   <span class="k">}</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-4'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-4'>#</a>
+      </div>
+      <hr />
+<p><strong>dumpPrefFile</strong> is a helper proc that opens the output file, writes
+out the values of the preferences array, and closes the file again.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::dumpPrefFile <span class="k">{</span><span class="nv">fname</span> arrayName<span class="k">}</span> <span class="k">{</span>
+   <span class="k">upvar</span> <span class="mi">0</span> <span class="nv">$arrayName</span> prefA
+   <span class="k">catch</span> <span class="k">{</span><span class="nb">file</span> attributes <span class="nv">$fname</span> <span class="o">-</span>hidden false<span class="k">}</span>
+   <span class="k">set</span> prefsHandle <span class="k">[</span><span class="nb">open</span> <span class="nv">$fname</span> w<span class="k">]</span>
+
+   <span class="k">foreach</span> <span class="k">{</span><span class="nv">outkey</span> outvalue<span class="k">}</span> <span class="k">[array</span> get prefA<span class="k">]</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="nv">$prefsHandle</span> <span class="s2">&quot;$outkey=$outvalue&quot;</span>
+   <span class="k">}</span>
+   <span class="nb">close</span> <span class="nv">$prefsHandle</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-5'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-5'>#</a>
+      </div>
+      <hr />
+<p><strong>initPrefs</strong> opens the local preferences file and reads it into the
+main array.  Uses a default name if no file name is provided; saves
+the name for use when saving changes.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::initPrefs <span class="k">{{</span><span class="nv">prefFile</span> <span class="s2">&quot;./prefs.ini&quot;</span><span class="k">}}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::prefFileName <span class="nv">$prefFile</span>
+   <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>loadPrefFile <span class="nv">$prefFile</span> <span class="o">::</span>PrefMgr::preferences
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::initDone true
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-6'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-6'>#</a>
+      </div>
+      <hr />
+<p><strong>getPref</strong> is a simple fetch from the preferences array, but we
+have to handle it gracefully if the key doesn't exist.  In case
+the user grabbed it from the wrong array, check the system
+array first, which returns whatever the programmer defined as
+the default if it fails too.  If there was no default, return
+a null string.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::getPref <span class="k">{</span><span class="nv">key</span> <span class="k">{</span><span class="nv">default</span> <span class="s2">&quot;&quot;</span><span class="k">}}</span> <span class="k">{</span>
+   <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="nv">$::PrefMgr::initDone</span><span class="k">}</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;WARNING - Attempt to access preferences before init.  Key = $key.&quot;</span>
+   <span class="k">}</span>
+   <span class="k">if</span> <span class="k">{[catch</span> <span class="k">{set</span> value <span class="nv">$::PrefMgr::preferences</span><span class="k">(</span><span class="nv">$key</span><span class="k">)}]}</span> <span class="k">{</span>
+      <span class="k">return</span> <span class="k">[</span><span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>getSysPref <span class="nv">$key</span> <span class="nv">$default</span><span class="k">]</span>
+   <span class="k">}</span>
+   <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;getting app key = $key, value = $value&quot;</span>
+   <span class="k">}</span>
+   <span class="k">return</span> <span class="nv">$value</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-7'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-7'>#</a>
+      </div>
+      <hr />
+<p><strong>getSysPref</strong> is the same as getPref, but only looks in the system
+preferences array.  If the key doesn't exist, return whatever the
+programmer defined as the default.  If there was no default,
+return a null string.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::getSysPref <span class="k">{</span><span class="nv">key</span> <span class="k">{</span><span class="nv">default</span> <span class="s2">&quot;&quot;</span><span class="k">}}</span> <span class="k">{</span>
+   <span class="k">if</span> <span class="k">{[catch</span> <span class="k">{set</span> value <span class="nv">$::PrefMgr::sysPreferences</span><span class="k">(</span><span class="nv">$key</span><span class="k">)}]}</span> <span class="k">{</span>
+      <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
+         <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;\tkey $key not found.\n&quot;</span>
+      <span class="k">}</span>
+      <span class="k">return</span> <span class="nv">$default</span>
+   <span class="k">}</span>
+   <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;getting sys key = $key, value = $value&quot;</span>
+   <span class="k">}</span>
+   <span class="k">return</span> <span class="nv">$value</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-8'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-8'>#</a>
+      </div>
+      <hr />
+<p><strong>setPref</strong> stores the value into the array, then the array must be flushed
+out to the file.  We do not want to rely on a clean exit to write this out.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::setPref <span class="k">{</span><span class="nv">key</span> value<span class="k">}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::preferences<span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="nv">$value</span>
+   <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;set app key = $key, value = $value&quot;</span>
+   <span class="k">}</span>
+   <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>dumpPrefFile <span class="nv">$::PrefMgr::prefFileName</span> <span class="o">::</span>PrefMgr::preferences
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-9'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-9'>#</a>
+      </div>
+      <p><strong>setSysPref</strong> is the same as setPref, but writes to the system
+file, not the local one.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::setSysPref <span class="k">{</span><span class="nv">key</span> value<span class="k">}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysPreferences<span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="nv">$value</span>
+   <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;set sys key = $key, value = $value&quot;</span>
+   <span class="k">}</span>
+   <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>dumpPrefFile <span class="nv">$::PrefMgr::sysFileName</span> <span class="o">::</span>PrefMgr::sysPreferences
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-10'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-10'>#</a>
+      </div>
+      <hr />
+<p><strong>showPrefs</strong> displays all key/value pairs, sorted alphabetically.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::showPrefs <span class="k">{}</span> <span class="k">{</span>
+   <span class="k">set</span> sortList <span class="k">{}</span>
+   <span class="nb">puts</span> <span class="s2">&quot;&quot;</span>
+   <span class="nb">puts</span> <span class="s2">&quot;Keys from local file ($::PrefMgr::prefFileName):&quot;</span>
+   <span class="nb">puts</span> <span class="s2">&quot;--------------------------------------------&quot;</span>
+   <span class="k">foreach</span> <span class="k">{</span><span class="nv">key</span> value<span class="k">}</span> <span class="k">[array</span> get <span class="o">::</span>PrefMgr::preferences<span class="k">]</span> <span class="k">{</span>
+      <span class="nb">lappend</span> sortList <span class="k">[</span><span class="nb">list</span> <span class="nv">$key</span> <span class="nv">$value</span><span class="k">]</span>
+   <span class="k">}</span>
+   <span class="k">set</span> sortList <span class="k">[</span><span class="nb">lsort</span> <span class="o">-</span>index <span class="mi">0</span> <span class="nv">$sortList</span><span class="k">]</span>
+   <span class="k">foreach</span> pair <span class="nv">$sortList</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%30s : %s&quot;</span> <span class="k">{</span><span class="o">*</span><span class="k">}</span><span class="nv">$pair</span><span class="k">]</span>
+   <span class="k">}</span>
+   <span class="k">set</span> sortList <span class="k">{}</span>
+   <span class="nb">puts</span> <span class="s2">&quot;&quot;</span>
+   <span class="nb">puts</span> <span class="s2">&quot;Keys from System preferences ($::PrefMgr::sysFileName):&quot;</span>
+   <span class="nb">puts</span> <span class="s2">&quot;----------------------------------------------&quot;</span>
+   <span class="k">foreach</span> <span class="k">{</span><span class="nv">key</span> value<span class="k">}</span> <span class="k">[array</span> get <span class="o">::</span>PrefMgr::sysPreferences<span class="k">]</span> <span class="k">{</span>
+      <span class="nb">lappend</span> sortList <span class="k">[</span><span class="nb">list</span> <span class="nv">$key</span> <span class="nv">$value</span><span class="k">]</span>
+   <span class="k">}</span>
+   <span class="k">set</span> sortList <span class="k">[</span><span class="nb">lsort</span> <span class="o">-</span>index <span class="mi">0</span> <span class="nv">$sortList</span><span class="k">]</span>
+   <span class="k">foreach</span> pair <span class="nv">$sortList</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%30s : %s&quot;</span> <span class="k">{</span><span class="o">*</span><span class="k">}</span><span class="nv">$pair</span><span class="k">]</span>
+   <span class="k">}</span>
+   <span class="nb">puts</span> <span class="s2">&quot;&quot;</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-11'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-11'>#</a>
+      </div>
+      <hr />
+<p>--------------&gt;  Run on load - don't wait for init  &lt;-------------</p>
+<p>When the module is loaded, try to open the system preferences file at once.
+Don't wait for invocation.  But only do it once.  sysInitDone marks it as run.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::runOnLoad <span class="k">{}</span> <span class="k">{</span>
+   <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="s2">&quot;\tPrefMgr.tcl loading\n&quot;</span>
+   <span class="k">}</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysDiscoverLoaded false
+   <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::sysInitDone<span class="k">]}</span> <span class="k">{</span>
+      <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>DebugHandle<span class="k">]}</span> <span class="k">{</span>
+         <span class="k">set</span> <span class="o">::</span>DebugHandle stderr
+      <span class="k">}</span>
+      <span class="k">set</span> <span class="o">::</span>PrefMgr::sysInitDone true
+      <span class="k">set</span> <span class="o">::</span>PrefMgr::initDone false
+      <span class="k">set</span> updateSysFile false</pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-12'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-12'>#</a>
+      </div>
+      <p>The system preferences used to be stored in "~/.sysprefs", which
+worked correctly under Cygwin but failed under Windows or when wrapped.
+It's been moved to "$LOCALAPPDATA/sysprefs.ini", which should work
+in both environments.  To help the transition, if a file is not found in
+the new place we will check the old one as well, and if the file is
+found in the old place we will read it, then mark it to be saved in
+the new place.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>      <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">LOCALAPPDATA</span><span class="k">)]</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
+      <span class="k">set</span> sysFileName <span class="nv">$::PrefMgr::sysFileName</span>
+      <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">file</span> exists <span class="nv">$::PrefMgr::sysFileName</span><span class="k">]}</span> <span class="k">{</span>
+         <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;Default system preferences file ($sysFileName) not found.&quot;</span>
+         <span class="k">if</span> <span class="k">{[</span><span class="nb">file</span> exists <span class="s2">&quot;~/.sysprefs&quot;</span><span class="k">]}</span> <span class="k">{</span>
+            <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;Found preferences in old location (~/.sysprefs).  Will copy to new location...&quot;</span>
+            <span class="k">set</span> sysFileName <span class="s2">&quot;~/.sysprefs&quot;</span>
+            <span class="k">set</span> updateSysFile true
+         <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+            <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;Creating new empty file in default location ($sysFileName)&quot;</span>
+            <span class="k">set</span> prefsHandle <span class="k">[</span><span class="nb">open</span> <span class="nv">$::PrefMgr::sysFileName</span> w<span class="k">]</span>
+            <span class="nb">close</span> <span class="nv">$prefsHandle</span>
+            <span class="k">return</span>
+         <span class="k">}</span>
+      <span class="k">}</span>
+      <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>loadPrefFile <span class="nv">$sysFileName</span> <span class="o">::</span>PrefMgr::sysPreferences</pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-13'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-13'>#</a>
+      </div>
+      <p>If we detected above that the system preferences file needed to
+be moved, save it now in its final place.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>      <span class="k">if</span> <span class="k">{</span><span class="nv">$updateSysFile</span><span class="k">}</span> <span class="k">{</span>
+         <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>dumpPrefFile <span class="nv">$::PrefMgr::sysFileName</span> <span class="o">::</span>PrefMgr::sysPreferences
+      <span class="k">}</span>
+   <span class="k">}</span>
+<span class="k">}</span>
+
+<span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>runOnLoad
+
+</pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+</div>
+</body>

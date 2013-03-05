@@ -1,0 +1,7 @@
+Package PrefMgr 0.5
+Meta description 
+Meta entrysource PrefMgr.tcl
+Meta included    PrefMgr.tcl pkgIndex.tcl
+Meta platform    tcl
+Meta require     {Tcl 8.5}
+
