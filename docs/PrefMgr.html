@@ -31,7 +31,7 @@
 <hr />
     </div>
     <div class='code'>
-      <div class="highlight"><pre><span class="nb">package</span> provide PrefMgr <span class="mf">0.5</span>
+      <div class="highlight"><pre><span class="nb">package</span> provide PrefMgr <span class="mf">0.6</span>
 
 <span class="k">namespace</span> eval PrefMgr <span class="k">{</span>
    <span class="k">variable</span> preferences
@@ -60,6 +60,16 @@
 <p>The system preferences will be in $env(LOCALAPPDATA)/sysprefs.ini,
 which is guaranteed to be defined in Windows and inherited for Cygwin,
 and is common for the system.</p>
+<p>Update (v. 0.6): $env(LOCALAPPDATA) is only defined for Windows 7.  For
+XP, the environment variable is $env(APPDATA), which in Win7 is in the
+"Roaming" subdirectory, following the user rather than the system.  Sigh.
+Since system preferences are explicitly local to the system and should
+NOT follow a user account, we'll look for LOCALAPPDATA first, then fail
+over to APPDATA.  Hopefully Vista should be OK with one of the two, but
+I don't have a Vista system to check it, so for now I'm just assuming.
+(Update: run on a friend's system, works correctly.)
+Also, for non-Windows systems, add env(HOME) and a final *nix failover
+of ~/.  I have no idea what a Mac does, so I hope this is enough.</p>
 <p>Application preferences will be in whatever file the main application
 defines when calling initPrefs (defaults to ./prefs.ini) and since
 it's normally unique to the current directory, a given tool run in
@@ -68,7 +78,18 @@ preferences filename can be overridden when initPrefs is called, and
 should be overridden to be unique for each app using the package.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre></pre></div>
+      <div class="highlight"><pre><span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists <span class="o">::</span>env<span class="k">(</span><span class="nv">LOCALAPPDATA</span><span class="k">)]}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">LOCALAPPDATA</span><span class="k">)]</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
+<span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">info</span> exists <span class="o">::</span>env<span class="k">(</span><span class="nv">APPDATA</span><span class="k">)]}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">APPDATA</span><span class="k">)]</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
+<span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">info</span> exists <span class="o">::</span>env<span class="k">(</span><span class="nv">HOME</span><span class="k">)]}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">HOME</span><span class="k">)]</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
+<span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="s2">&quot;~&quot;</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
+<span class="k">}</span>
+<span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::prefFileName<span class="k">]}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::prefFileName <span class="s2">&quot;&quot;</span>
+<span class="k">}</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -121,7 +142,6 @@ if it doesn't (but continue anyway).</p>
       <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::loadPrefFile <span class="k">{</span><span class="nv">fname</span> arrayName<span class="k">}</span> <span class="k">{</span>
    <span class="k">upvar</span> <span class="mi">0</span> <span class="nv">$arrayName</span> prefA
 
-   <span class="k">catch</span> <span class="k">{</span><span class="nb">file</span> attributes <span class="nv">$fname</span> <span class="o">-</span>hidden false<span class="k">}</span>
    <span class="k">if</span> <span class="k">{[catch</span> <span class="k">{</span><span class="nb">open</span> <span class="nv">$fname</span> r<span class="k">}</span> prefsHandle<span class="k">]}</span> <span class="k">{</span>
       <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;Preferences file ($fname) not found.  Creating empty file.&quot;</span>
       <span class="k">set</span> prefsHandle <span class="k">[</span><span class="nb">open</span> <span class="nv">$fname</span> w<span class="k">]</span>
@@ -164,7 +184,6 @@ out the values of the preferences array, and closes the file again.</p>
     <div class='code'>
       <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::dumpPrefFile <span class="k">{</span><span class="nv">fname</span> arrayName<span class="k">}</span> <span class="k">{</span>
    <span class="k">upvar</span> <span class="mi">0</span> <span class="nv">$arrayName</span> prefA
-   <span class="k">catch</span> <span class="k">{</span><span class="nb">file</span> attributes <span class="nv">$fname</span> <span class="o">-</span>hidden false<span class="k">}</span>
    <span class="k">set</span> prefsHandle <span class="k">[</span><span class="nb">open</span> <span class="nv">$fname</span> w<span class="k">]</span>
 
    <span class="k">foreach</span> <span class="k">{</span><span class="nv">outkey</span> outvalue<span class="k">}</span> <span class="k">[array</span> get prefA<span class="k">]</span> <span class="k">{</span>
@@ -366,8 +385,7 @@ found in the old place we will read it, then mark it to be saved in
 the new place.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>      <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">LOCALAPPDATA</span><span class="k">)]</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
-      <span class="k">set</span> sysFileName <span class="nv">$::PrefMgr::sysFileName</span>
+      <div class="highlight"><pre>      <span class="k">set</span> sysFileName <span class="nv">$::PrefMgr::sysFileName</span>
       <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">file</span> exists <span class="nv">$::PrefMgr::sysFileName</span><span class="k">]}</span> <span class="k">{</span>
          <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;Default system preferences file ($sysFileName) not found.&quot;</span>
          <span class="k">if</span> <span class="k">{[</span><span class="nb">file</span> exists <span class="s2">&quot;~/.sysprefs&quot;</span><span class="k">]}</span> <span class="k">{</span>

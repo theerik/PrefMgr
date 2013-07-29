@@ -17,7 +17,7 @@
 #
 #--------------------------------------------------------------------------
 
-package provide PrefMgr 0.5
+package provide PrefMgr 0.6
 
 namespace eval PrefMgr {
    variable preferences
@@ -41,6 +41,17 @@ set ::PrefMgr::packageDir [file dirname [info script]]
 # which is guaranteed to be defined in Windows and inherited for Cygwin,
 # and is common for the system.
 #
+# Update (v. 0.6): $env(LOCALAPPDATA) is only defined for Windows 7.  For
+# XP, the environment variable is $env(APPDATA), which in Win7 is in the
+# "Roaming" subdirectory, following the user rather than the system.  Sigh.
+# Since system preferences are explicitly local to the system and should
+# NOT follow a user account, we'll look for LOCALAPPDATA first, then fail
+# over to APPDATA.  Hopefully Vista should be OK with one of the two, but
+# I don't have a Vista system to check it, so for now I'm just assuming.
+# (Update: run on a friend's system, works correctly.)
+# Also, for non-Windows systems, add env(HOME) and a final *nix failover
+# of ~/.  I have no idea what a Mac does, so I hope this is enough.
+#
 # Application preferences will be in whatever file the main application
 # defines when calling initPrefs (defaults to ./prefs.ini) and since
 # it's normally unique to the current directory, a given tool run in
@@ -48,6 +59,18 @@ set ::PrefMgr::packageDir [file dirname [info script]]
 # preferences filename can be overridden when initPrefs is called, and
 # should be overridden to be unique for each app using the package.
 #
+if {[info exists ::env(LOCALAPPDATA)]} {
+   set ::PrefMgr::sysFileName [file join {*}[file split $::env(LOCALAPPDATA)] "sysprefs.ini"]
+} elseif {[info exists ::env(APPDATA)]} {
+   set ::PrefMgr::sysFileName [file join {*}[file split $::env(APPDATA)] "sysprefs.ini"]
+} elseif {[info exists ::env(HOME)]} {
+   set ::PrefMgr::sysFileName [file join {*}[file split $::env(HOME)] "sysprefs.ini"]
+} else {
+   set ::PrefMgr::sysFileName [file join "~" "sysprefs.ini"]
+}
+if {![info exists ::PrefMgr::prefFileName]} {
+   set ::PrefMgr::prefFileName ""
+}
 
 #--------------------------------------------------------------------------
 # Only init debug flag if user did not already set it, allowing user to
@@ -260,7 +283,6 @@ proc ::PrefMgr::runOnLoad {} {
       # the new place we will check the old one as well, and if the file is
       # found in the old place we will read it, then mark it to be saved in
       # the new place.
-      set ::PrefMgr::sysFileName [file join {*}[file split $::env(LOCALAPPDATA)] "sysprefs.ini"]
       set sysFileName $::PrefMgr::sysFileName
       if {![file exists $::PrefMgr::sysFileName]} {
          puts $::DebugHandle "Default system preferences file ($sysFileName) not found."
