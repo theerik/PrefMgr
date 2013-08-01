@@ -123,7 +123,7 @@ proc ::PrefMgr::loadPrefFile {fname arrayName} {
       }
       set done [gets $prefsHandle line]
       while {$done != -1} {
-         if {!([string index $line 0] == ";" || \
+         if {!([string index $line 0] == ";" || $line == "" || \
                [string index $line 0] == "#")    } {
             if {[regexp {([^=]+)=(.*)} $line match key value]} {
                set prefA($key) $value
