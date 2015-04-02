@@ -31,7 +31,7 @@
 <hr />
     </div>
     <div class='code'>
-      <div class="highlight"><pre><span class="nb">package</span> provide PrefMgr <span class="mf">0.6</span>
+      <div class="highlight"><pre><span class="nb">package</span> provide PrefMgr <span class="mf">0.7</span>
 
 <span class="k">namespace</span> eval PrefMgr <span class="k">{</span>
    <span class="k">variable</span> preferences
@@ -43,7 +43,8 @@
    <span class="k">variable</span> sysFileName
    <span class="k">variable</span> packageDir
 
-   <span class="k">namespace</span> export setPref getPref setSysPref getSysPref initPrefs showPrefs setDebug
+   <span class="k">namespace</span> export initPrefs getPref getSysPref setSysPref setPref <span class="err">\</span>
+                    <span class="nv">showPrefs</span> setDebug
 <span class="k">}</span>
 
 <span class="k">set</span> <span class="o">::</span>PrefMgr::packageDir <span class="k">[</span><span class="nb">file</span> dirname <span class="k">[</span><span class="nb">info</span> script<span class="k">]]</span></pre></div>
@@ -55,7 +56,7 @@
       <div class='octowrap'>
         <a class='octothorpe' href='#section-1'>#</a>
       </div>
-      <h1></h1>
+      <hr />
 <p>The preferences files will be stored in canonical locations.</p>
 <p>The system preferences will be in $env(LOCALAPPDATA)/sysprefs.ini,
 which is guaranteed to be defined in Windows and inherited for Cygwin,
@@ -79,16 +80,19 @@ should be overridden to be unique for each app using the package.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre><span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists <span class="o">::</span>env<span class="k">(</span><span class="nv">LOCALAPPDATA</span><span class="k">)]}</span> <span class="k">{</span>
-   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">LOCALAPPDATA</span><span class="k">)]</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">LOCALAPPDATA</span><span class="k">)]</span> <span class="err">\</span>
+         <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
 <span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">info</span> exists <span class="o">::</span>env<span class="k">(</span><span class="nv">APPDATA</span><span class="k">)]}</span> <span class="k">{</span>
-   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">APPDATA</span><span class="k">)]</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">APPDATA</span><span class="k">)]</span> <span class="err">\</span>
+         <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
 <span class="k">}</span> <span class="k">elseif</span> <span class="k">{[</span><span class="nb">info</span> exists <span class="o">::</span>env<span class="k">(</span><span class="nv">HOME</span><span class="k">)]}</span> <span class="k">{</span>
-   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">HOME</span><span class="k">)]</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="k">{</span><span class="o">*</span><span class="k">}[</span><span class="nb">file</span> split <span class="nv">$::env</span><span class="k">(</span><span class="nv">HOME</span><span class="k">)]</span> <span class="err">\</span>
+         <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
 <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
    <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="s2">&quot;~&quot;</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
 <span class="k">}</span>
 <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::prefFileName<span class="k">]}</span> <span class="k">{</span>
-   <span class="k">set</span> <span class="o">::</span>PrefMgr::prefFileName <span class="s2">&quot;&quot;</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::prefFileName <span class="s2">&quot;prefs.ini&quot;</span>
 <span class="k">}</span></pre></div>
     </div>
   </div>
@@ -139,21 +143,23 @@ a comment, it's expected to have a format of <code>key=value</code>, and we comp
 if it doesn't (but continue anyway).</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::loadPrefFile <span class="k">{</span><span class="nv">fname</span> arrayName<span class="k">}</span> <span class="k">{</span>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::_loadPrefFile <span class="k">{</span><span class="nv">fname</span> arrayName<span class="k">}</span> <span class="k">{</span>
    <span class="k">upvar</span> <span class="mi">0</span> <span class="nv">$arrayName</span> prefA
 
    <span class="k">if</span> <span class="k">{[catch</span> <span class="k">{</span><span class="nb">open</span> <span class="nv">$fname</span> r<span class="k">}</span> prefsHandle<span class="k">]}</span> <span class="k">{</span>
-      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;Preferences file ($fname) not found.  Creating empty file.&quot;</span>
+      <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;Preferences file ($fname) not found. \</span>
+<span class="s2">            Creating empty file.&quot;</span>
       <span class="k">set</span> prefsHandle <span class="k">[</span><span class="nb">open</span> <span class="nv">$fname</span> w<span class="k">]</span>
       <span class="nb">close</span> <span class="nv">$prefsHandle</span>
    <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
       <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
-         <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;\tpreferences file found: [glob -nocomplain $fname].\n&quot;</span>
+         <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;\tpreferences file found: \</span>
+<span class="s2">               [glob -nocomplain $fname].\n&quot;</span>
          <span class="nb">puts</span> <span class="k">[</span><span class="nb">format</span> <span class="s2">&quot;%30s : %s&quot;</span> <span class="s2">&quot;Key&quot;</span> <span class="s2">&quot;Value&quot;</span><span class="k">]</span>
       <span class="k">}</span>
       <span class="k">set</span> done <span class="k">[</span><span class="nb">gets</span> <span class="nv">$prefsHandle</span> line<span class="k">]</span>
       <span class="k">while</span> <span class="k">{</span><span class="nv">$done</span> <span class="o">!=</span> <span class="nv">-1</span><span class="k">}</span> <span class="k">{</span>
-         <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">([</span><span class="nb">string</span> index <span class="nv">$line</span> <span class="mi">0</span><span class="k">]</span> <span class="o">==</span> <span class="s2">&quot;;&quot;</span> <span class="o">||</span> <span class="err">\</span>
+         <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">([</span><span class="nb">string</span> index <span class="nv">$line</span> <span class="mi">0</span><span class="k">]</span> <span class="o">==</span> <span class="s2">&quot;;&quot;</span> <span class="o">||</span> <span class="nv">$line</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="o">||</span> <span class="err">\</span>
                <span class="k">[</span><span class="nb">string</span> index <span class="nv">$line</span> <span class="mi">0</span><span class="k">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="k">)</span>    <span class="k">}</span> <span class="k">{</span>
             <span class="k">if</span> <span class="k">{[</span><span class="nb">regexp</span> <span class="k">{([</span><span class="o">^</span><span class="err">=</span><span class="k">]</span><span class="o">+</span><span class="k">)</span><span class="err">=</span><span class="k">(</span><span class="nv">.</span><span class="o">*</span><span class="k">)}</span> <span class="nv">$line</span> match key value<span class="k">]}</span> <span class="k">{</span>
                <span class="k">set</span> prefA<span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="nv">$value</span>
@@ -182,9 +188,18 @@ if it doesn't (but continue anyway).</p>
 out the values of the preferences array, and closes the file again.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::dumpPrefFile <span class="k">{</span><span class="nv">fname</span> arrayName<span class="k">}</span> <span class="k">{</span>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::_dumpPrefFile <span class="k">{</span><span class="nv">fname</span> arrayName<span class="k">}</span> <span class="k">{</span>
    <span class="k">upvar</span> <span class="mi">0</span> <span class="nv">$arrayName</span> prefA
    <span class="k">set</span> prefsHandle <span class="k">[</span><span class="nb">open</span> <span class="nv">$fname</span> w<span class="k">]</span>
+   <span class="k">if</span> <span class="k">[</span><span class="nb">string</span> match <span class="s2">&quot;*sysPref*&quot;</span> <span class="nv">$arrayName</span><span class="k">]</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="nv">$prefsHandle</span> <span class="s2">&quot;; System Preferences: $fname&quot;</span>
+   <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="nv">$prefsHandle</span> <span class="s2">&quot;; Application Preferences: $fname&quot;</span>
+   <span class="k">}</span>
+   <span class="nb">puts</span> <span class="nv">$prefsHandle</span> <span class="s2">&quot;; &quot;</span>
+   <span class="nb">puts</span> <span class="nv">$prefsHandle</span> <span class="s2">&quot;; WARNING: This file is auto-generated by PrefMgr.&quot;</span>
+   <span class="nb">puts</span> <span class="nv">$prefsHandle</span> <span class="s2">&quot;;          Any formatting changes will be lost.&quot;</span>
+   <span class="nb">puts</span> <span class="nv">$prefsHandle</span> <span class="s2">&quot;; &quot;</span>
 
    <span class="k">foreach</span> <span class="k">{</span><span class="nv">outkey</span> outvalue<span class="k">}</span> <span class="k">[array</span> get prefA<span class="k">]</span> <span class="k">{</span>
       <span class="nb">puts</span> <span class="nv">$prefsHandle</span> <span class="s2">&quot;$outkey=$outvalue&quot;</span>
@@ -229,13 +244,14 @@ a null string.</p>
     <div class='code'>
       <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::getPref <span class="k">{</span><span class="nv">key</span> <span class="k">{</span><span class="nv">default</span> <span class="s2">&quot;&quot;</span><span class="k">}}</span> <span class="k">{</span>
    <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="nv">$::PrefMgr::initDone</span><span class="k">}</span> <span class="k">{</span>
-      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;WARNING - Attempt to access preferences before init.  Key = $key.&quot;</span>
+      <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;WARNING - Attempt to access preferences \</span>
+<span class="s2">            before init.  Key = $key.&quot;</span>
    <span class="k">}</span>
    <span class="k">if</span> <span class="k">{[catch</span> <span class="k">{set</span> value <span class="nv">$::PrefMgr::preferences</span><span class="k">(</span><span class="nv">$key</span><span class="k">)}]}</span> <span class="k">{</span>
       <span class="k">return</span> <span class="k">[</span><span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>getSysPref <span class="nv">$key</span> <span class="nv">$default</span><span class="k">]</span>
    <span class="k">}</span>
    <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
-      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;getting app key = $key, value = $value&quot;</span>
+      <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;getting app key = $key, value = $value&quot;</span>
    <span class="k">}</span>
    <span class="k">return</span> <span class="nv">$value</span>
 <span class="k">}</span></pre></div>
@@ -257,12 +273,13 @@ return a null string.</p>
       <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::getSysPref <span class="k">{</span><span class="nv">key</span> <span class="k">{</span><span class="nv">default</span> <span class="s2">&quot;&quot;</span><span class="k">}}</span> <span class="k">{</span>
    <span class="k">if</span> <span class="k">{[catch</span> <span class="k">{set</span> value <span class="nv">$::PrefMgr::sysPreferences</span><span class="k">(</span><span class="nv">$key</span><span class="k">)}]}</span> <span class="k">{</span>
       <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
-         <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;\tkey $key not found.\n&quot;</span>
+         <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;\tkey $key not found. \</span>
+<span class="s2">                              Returning \&#39;$default\&#39; as default.\n&quot;</span>
       <span class="k">}</span>
       <span class="k">return</span> <span class="nv">$default</span>
    <span class="k">}</span>
    <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
-      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;getting sys key = $key, value = $value&quot;</span>
+      <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;getting sys key = $key, value = $value&quot;</span>
    <span class="k">}</span>
    <span class="k">return</span> <span class="nv">$value</span>
 <span class="k">}</span></pre></div>
@@ -282,7 +299,7 @@ out to the file.  We do not want to rely on a clean exit to write this out.</p>
       <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::setPref <span class="k">{</span><span class="nv">key</span> value<span class="k">}</span> <span class="k">{</span>
    <span class="k">set</span> <span class="o">::</span>PrefMgr::preferences<span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="nv">$value</span>
    <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
-      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;set app key = $key, value = $value&quot;</span>
+      <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;set app key = $key, value = $value&quot;</span>
    <span class="k">}</span>
    <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>dumpPrefFile <span class="nv">$::PrefMgr::prefFileName</span> <span class="o">::</span>PrefMgr::preferences
 <span class="k">}</span></pre></div>
@@ -301,7 +318,7 @@ file, not the local one.</p>
       <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::setSysPref <span class="k">{</span><span class="nv">key</span> value<span class="k">}</span> <span class="k">{</span>
    <span class="k">set</span> <span class="o">::</span>PrefMgr::sysPreferences<span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="nv">$value</span>
    <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
-      <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;set sys key = $key, value = $value&quot;</span>
+      <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;set sys key = $key, value = $value&quot;</span>
    <span class="k">}</span>
    <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>dumpPrefFile <span class="nv">$::PrefMgr::sysFileName</span> <span class="o">::</span>PrefMgr::sysPreferences
 <span class="k">}</span></pre></div>
@@ -362,8 +379,8 @@ Don't wait for invocation.  But only do it once.  sysInitDone marks it as run.</
    <span class="k">}</span>
    <span class="k">set</span> <span class="o">::</span>PrefMgr::sysDiscoverLoaded false
    <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::sysInitDone<span class="k">]}</span> <span class="k">{</span>
-      <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>DebugHandle<span class="k">]}</span> <span class="k">{</span>
-         <span class="k">set</span> <span class="o">::</span>DebugHandle stderr
+      <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::DebugHandle<span class="k">]}</span> <span class="k">{</span>
+         <span class="k">set</span> <span class="o">::</span>PrefMgr::DebugHandle stderr
       <span class="k">}</span>
       <span class="k">set</span> <span class="o">::</span>PrefMgr::sysInitDone true
       <span class="k">set</span> <span class="o">::</span>PrefMgr::initDone false
@@ -387,13 +404,16 @@ the new place.</p>
     <div class='code'>
       <div class="highlight"><pre>      <span class="k">set</span> sysFileName <span class="nv">$::PrefMgr::sysFileName</span>
       <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">file</span> exists <span class="nv">$::PrefMgr::sysFileName</span><span class="k">]}</span> <span class="k">{</span>
-         <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;Default system preferences file ($sysFileName) not found.&quot;</span>
+         <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;Default system preferences file \</span>
+<span class="s2">               ($sysFileName) not found.&quot;</span>
          <span class="k">if</span> <span class="k">{[</span><span class="nb">file</span> exists <span class="s2">&quot;~/.sysprefs&quot;</span><span class="k">]}</span> <span class="k">{</span>
-            <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;Found preferences in old location (~/.sysprefs).  Will copy to new location...&quot;</span>
+            <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;Found preferences in old location \</span>
+<span class="s2">                  (~/.sysprefs).  Will copy to new location...&quot;</span>
             <span class="k">set</span> sysFileName <span class="s2">&quot;~/.sysprefs&quot;</span>
             <span class="k">set</span> updateSysFile true
          <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
-            <span class="nb">puts</span> <span class="nv">$::DebugHandle</span> <span class="s2">&quot;Creating new empty file in default location ($sysFileName)&quot;</span>
+            <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;Creating new empty file in default \</span>
+<span class="s2">                  location ($sysFileName)&quot;</span>
             <span class="k">set</span> prefsHandle <span class="k">[</span><span class="nb">open</span> <span class="nv">$::PrefMgr::sysFileName</span> w<span class="k">]</span>
             <span class="nb">close</span> <span class="nv">$prefsHandle</span>
             <span class="k">return</span>
@@ -413,7 +433,8 @@ be moved, save it now in its final place.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre>      <span class="k">if</span> <span class="k">{</span><span class="nv">$updateSysFile</span><span class="k">}</span> <span class="k">{</span>
-         <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>dumpPrefFile <span class="nv">$::PrefMgr::sysFileName</span> <span class="o">::</span>PrefMgr::sysPreferences
+         <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>dumpPrefFile <span class="nv">$::PrefMgr::sysFileName</span> <span class="err">\</span>
+               <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>sysPreferences
       <span class="k">}</span>
    <span class="k">}</span>
 <span class="k">}</span>

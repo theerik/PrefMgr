@@ -29,7 +29,8 @@ namespace eval PrefMgr {
    variable sysFileName
    variable packageDir
 
-   namespace export setPref getPref setSysPref getSysPref initPrefs showPrefs setDebug
+   namespace export initPrefs getPref getSysPref setSysPref setPref \
+                    showPrefs setDebug
 }
 
 set ::PrefMgr::packageDir [file dirname [info script]]
@@ -60,11 +61,14 @@ set ::PrefMgr::packageDir [file dirname [info script]]
 # should be overridden to be unique for each app using the package.
 #
 if {[info exists ::env(LOCALAPPDATA)]} {
-   set ::PrefMgr::sysFileName [file join {*}[file split $::env(LOCALAPPDATA)] "sysprefs.ini"]
+   set ::PrefMgr::sysFileName [file join {*}[file split $::env(LOCALAPPDATA)] \
+         "sysprefs.ini"]
 } elseif {[info exists ::env(APPDATA)]} {
-   set ::PrefMgr::sysFileName [file join {*}[file split $::env(APPDATA)] "sysprefs.ini"]
+   set ::PrefMgr::sysFileName [file join {*}[file split $::env(APPDATA)] \
+         "sysprefs.ini"]
 } elseif {[info exists ::env(HOME)]} {
-   set ::PrefMgr::sysFileName [file join {*}[file split $::env(HOME)] "sysprefs.ini"]
+   set ::PrefMgr::sysFileName [file join {*}[file split $::env(HOME)] \
+         "sysprefs.ini"]
 } else {
    set ::PrefMgr::sysFileName [file join "~" "sysprefs.ini"]
 }
@@ -109,16 +113,18 @@ proc ::PrefMgr::setDebug {{debugFlag false}} {
 # a comment, it's expected to have a format of `key=value`, and we complain
 # if it doesn't (but continue anyway).
 #
-proc ::PrefMgr::loadPrefFile {fname arrayName} {
+proc ::PrefMgr::_loadPrefFile {fname arrayName} {
    upvar 0 $arrayName prefA
 
    if {[catch {open $fname r} prefsHandle]} {
-      puts $::DebugHandle "Preferences file ($fname) not found.  Creating empty file."
+      puts $::PrefMgr::DebugHandle "Preferences file ($fname) not found. \
+            Creating empty file."
       set prefsHandle [open $fname w]
       close $prefsHandle
    } else {
       if {$::PrefMgr::debug} {
-         puts $::DebugHandle "\tpreferences file found: [glob -nocomplain $fname].\n"
+         puts $::PrefMgr::DebugHandle "\tpreferences file found: \
+               [glob -nocomplain $fname].\n"
          puts [format "%30s : %s" "Key" "Value"]
       }
       set done [gets $prefsHandle line]
@@ -144,7 +150,7 @@ proc ::PrefMgr::loadPrefFile {fname arrayName} {
 # **dumpPrefFile** is a helper proc that opens the output file, writes
 # out the values of the preferences array, and closes the file again.
 #
-proc ::PrefMgr::dumpPrefFile {fname arrayName} {
+proc ::PrefMgr::_dumpPrefFile {fname arrayName} {
    upvar 0 $arrayName prefA
    set prefsHandle [open $fname w]
    if [string match "*sysPref*" $arrayName] {
@@ -184,13 +190,14 @@ proc ::PrefMgr::initPrefs {{prefFile "./prefs.ini"}} {
 #
 proc ::PrefMgr::getPref {key {default ""}} {
    if {!$::PrefMgr::initDone} {
-      puts $::DebugHandle "WARNING - Attempt to access preferences before init.  Key = $key."
+      puts $::PrefMgr::DebugHandle "WARNING - Attempt to access preferences \
+            before init.  Key = $key."
    }
    if {[catch {set value $::PrefMgr::preferences($key)}]} {
       return [::PrefMgr::getSysPref $key $default]
    }
    if {$::PrefMgr::debug} {
-      puts $::DebugHandle "getting app key = $key, value = $value"
+      puts $::PrefMgr::DebugHandle "getting app key = $key, value = $value"
    }
    return $value
 }
@@ -204,13 +211,13 @@ proc ::PrefMgr::getPref {key {default ""}} {
 proc ::PrefMgr::getSysPref {key {default ""}} {
    if {[catch {set value $::PrefMgr::sysPreferences($key)}]} {
       if {$::PrefMgr::debug} {
-         puts $::DebugHandle "\tkey $key not found. \
+         puts $::PrefMgr::DebugHandle "\tkey $key not found. \
                               Returning \'$default\' as default.\n"
       }
       return $default
    }
    if {$::PrefMgr::debug} {
-      puts $::DebugHandle "getting sys key = $key, value = $value"
+      puts $::PrefMgr::DebugHandle "getting sys key = $key, value = $value"
    }
    return $value
 }
@@ -222,7 +229,7 @@ proc ::PrefMgr::getSysPref {key {default ""}} {
 proc ::PrefMgr::setPref {key value} {
    set ::PrefMgr::preferences($key) $value
    if {$::PrefMgr::debug} {
-      puts $::DebugHandle "set app key = $key, value = $value"
+      puts $::PrefMgr::DebugHandle "set app key = $key, value = $value"
    }
    ::PrefMgr::dumpPrefFile $::PrefMgr::prefFileName ::PrefMgr::preferences
 }
@@ -233,7 +240,7 @@ proc ::PrefMgr::setPref {key value} {
 proc ::PrefMgr::setSysPref {key value} {
    set ::PrefMgr::sysPreferences($key) $value
    if {$::PrefMgr::debug} {
-      puts $::DebugHandle "set sys key = $key, value = $value"
+      puts $::PrefMgr::DebugHandle "set sys key = $key, value = $value"
    }
    ::PrefMgr::dumpPrefFile $::PrefMgr::sysFileName ::PrefMgr::sysPreferences
 }
@@ -279,8 +286,8 @@ proc ::PrefMgr::runOnLoad {} {
    }
    set ::PrefMgr::sysDiscoverLoaded false
    if {![info exists ::PrefMgr::sysInitDone]} {
-      if {![info exists ::DebugHandle]} {
-         set ::DebugHandle stderr
+      if {![info exists ::PrefMgr::DebugHandle]} {
+         set ::PrefMgr::DebugHandle stderr
       }
       set ::PrefMgr::sysInitDone true
       set ::PrefMgr::initDone false
@@ -295,13 +302,16 @@ proc ::PrefMgr::runOnLoad {} {
       # the new place.
       set sysFileName $::PrefMgr::sysFileName
       if {![file exists $::PrefMgr::sysFileName]} {
-         puts $::DebugHandle "Default system preferences file ($sysFileName) not found."
+         puts $::PrefMgr::DebugHandle "Default system preferences file \
+               ($sysFileName) not found."
          if {[file exists "~/.sysprefs"]} {
-            puts $::DebugHandle "Found preferences in old location (~/.sysprefs).  Will copy to new location..."
+            puts $::PrefMgr::DebugHandle "Found preferences in old location \
+                  (~/.sysprefs).  Will copy to new location..."
             set sysFileName "~/.sysprefs"
             set updateSysFile true
          } else {
-            puts $::DebugHandle "Creating new empty file in default location ($sysFileName)"
+            puts $::PrefMgr::DebugHandle "Creating new empty file in default \
+                  location ($sysFileName)"
             set prefsHandle [open $::PrefMgr::sysFileName w]
             close $prefsHandle
             return
@@ -312,7 +322,8 @@ proc ::PrefMgr::runOnLoad {} {
       # If we detected above that the system preferences file needed to
       # be moved, save it now in its final place.
       if {$updateSysFile} {
-         ::PrefMgr::dumpPrefFile $::PrefMgr::sysFileName ::PrefMgr::sysPreferences
+         ::PrefMgr::dumpPrefFile $::PrefMgr::sysFileName \
+               ::PrefMgr::sysPreferences
       }
    }
 }
