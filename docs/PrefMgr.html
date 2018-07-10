@@ -19,7 +19,7 @@
       </div>
       <hr />
 <p>FILENAME:    PrefMgr.tcl</p>
-<p>AUTHOR:      ejohnson</p>
+<p>AUTHOR:      theerik@github</p>
 <p>DESCRIPTION:  Preferences Manager provides methods for setting and
               retrieving persistent data values.  Two classes of data are
               supported:  system-wide common data, and application-
@@ -27,11 +27,14 @@
               of hardware interfaces (e.g., port ID's) or paths to system
               resources.</p>
 <hr />
-<p>Copyright 2010-2013, Erik N. Johnson </p>
-<hr />
+<p>Copyright 2010-2017, Erik N. Johnson</p>
+<p>This package documentation is auto-generated with
+Pycco: <a href="https://pycco-docs.github.io/pycco/">https://pycco-docs.github.io/pycco/</a></p>
+<p>Use "pycco filename" to re-generate HTML documentation in ./docs .</p>
+<h6></h6>
     </div>
     <div class='code'>
-      <div class="highlight"><pre><span class="nb">package</span> provide PrefMgr <span class="mf">0.7</span>
+      <div class="highlight"><pre><span></span><span class="nb">package</span> provide PrefMgr <span class="mf">0.7</span>.1
 
 <span class="k">namespace</span> eval PrefMgr <span class="k">{</span>
    <span class="k">variable</span> preferences
@@ -57,26 +60,22 @@
         <a class='octothorpe' href='#section-1'>#</a>
       </div>
       <hr />
-<p>The preferences files will be stored in canonical locations.</p>
-<p>The system preferences will be in $env(LOCALAPPDATA)/sysprefs.ini,
+<p>The preferences files are stored in canonical locations.</p>
+<p>The system preferences will be in <em>$env(LOCALAPPDATA)/sysprefs.ini</em>,
 which is guaranteed to be defined in Windows and inherited for Cygwin,
 and is common for the system.</p>
-<p>Update (v. 0.6): $env(LOCALAPPDATA) is only defined for Windows 7.  For
-XP, the environment variable is $env(APPDATA), which in Win7 is in the
+<p>Update (v. 0.6): <em>$env(LOCALAPPDATA)</em> is only defined for Windows 7.  For
+XP, the environment variable is <em>$env(APPDATA)</em>, which in Win7 is in the
 "Roaming" subdirectory, following the user rather than the system.  Sigh.
 Since system preferences are explicitly local to the system and should
 NOT follow a user account, we'll look for LOCALAPPDATA first, then fail
 over to APPDATA.  Hopefully Vista should be OK with one of the two, but
 I don't have a Vista system to check it, so for now I'm just assuming.
 (Update: run on a friend's system, works correctly.)
-Also, for non-Windows systems, add env(HOME) and a final *nix failover
-of ~/.  I have no idea what a Mac does, so I hope this is enough.</p>
-<p>Application preferences will be in whatever file the main application
-defines when calling initPrefs (defaults to ./prefs.ini) and since
-it's normally unique to the current directory, a given tool run in
-different directories can have different saved preferences.  The app
-preferences filename can be overridden when initPrefs is called, and
-should be overridden to be unique for each app using the package.</p>
+Also, for non-Windows systems, add <em>env(HOME)</em> and a final *nix failover
+of ~/.  I have no idea what a Mac does, so I hope this is enough.
+Update (post v. 0.7): Now on Win 10, and LOCALAPPDATA continues to work.
+Still don't have a Mac to test on.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre><span class="k">if</span> <span class="k">{[</span><span class="nb">info</span> exists <span class="o">::</span>env<span class="k">(</span><span class="nv">LOCALAPPDATA</span><span class="k">)]}</span> <span class="k">{</span>
@@ -90,9 +89,6 @@ should be overridden to be unique for each app using the package.</p>
          <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
 <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
    <span class="k">set</span> <span class="o">::</span>PrefMgr::sysFileName <span class="k">[</span><span class="nb">file</span> join <span class="s2">&quot;~&quot;</span> <span class="s2">&quot;sysprefs.ini&quot;</span><span class="k">]</span>
-<span class="k">}</span>
-<span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::prefFileName<span class="k">]}</span> <span class="k">{</span>
-   <span class="k">set</span> <span class="o">::</span>PrefMgr::prefFileName <span class="s2">&quot;prefs.ini&quot;</span>
 <span class="k">}</span></pre></div>
     </div>
   </div>
@@ -102,14 +98,34 @@ should be overridden to be unique for each app using the package.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-2'>#</a>
       </div>
+      <p>Application preferences will be in whatever file the main application
+defines when calling initPrefs (defaults to ./prefs.ini) and since
+it's normally unique to the current directory, a given tool run in
+different directories can have different saved preferences.  The app
+preferences filename can be overridden when initPrefs is called, and
+<em>should</em> be overridden to be unique for each app using the package.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::prefFileName<span class="k">]}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::prefFileName <span class="s2">&quot;prefs.ini&quot;</span>
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-3'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-3'>#</a>
+      </div>
       <hr />
-<p>Only init debug flag if user did not already set it, allowing user to
+<p>Only init the debug flag if user did not already set it, allowing user to
 pre-enable the debug flag when loading the package to debug load issues.
-This requires the user to add an extra line of code to deal with 
+This requires the user to add an extra line of code to deal with
 the namespace issues:</p>
-<p><code>namespace eval PrefMgr {variable debug}</code></p>
-<p><code>set ::PrefMgr::debug true</code></p>
-<p>For non-load-time debugging, the <strong>setDebug</strong> method allows the package user
+<pre><code>namespace eval PrefMgr {variable debug}
+set ::PrefMgr::debug true
+</code></pre>
+<p>For non-load-time debugging, the <em>setDebug</em> method allows the package user
 to dynamically enable debugging.</p>
     </div>
     <div class='code'>
@@ -123,13 +139,13 @@ to dynamically enable debugging.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-3'>
+  <div class='section' id='section-4'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-3'>#</a>
+        <a class='octothorpe' href='#section-4'>#</a>
       </div>
       <hr />
-<p><strong>loadPrefFile</strong> is a helper proc that opens the input file and loads
+<p><em>_loadPrefFile</em> is a helper proc that opens the input file and loads
 the contents into an array.  The name of the array is passed in to upvar
 it to support either the local or the system preferences files.</p>
 <p>If the file cannot be opened, we will print an error message then open the
@@ -178,13 +194,13 @@ if it doesn't (but continue anyway).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-4'>
+  <div class='section' id='section-5'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-4'>#</a>
+        <a class='octothorpe' href='#section-5'>#</a>
       </div>
       <hr />
-<p><strong>dumpPrefFile</strong> is a helper proc that opens the output file, writes
+<p><em>_dumpPrefFile</em> is a helper proc that opens the output file, writes
 out the values of the preferences array, and closes the file again.</p>
     </div>
     <div class='code'>
@@ -209,37 +225,36 @@ out the values of the preferences array, and closes the file again.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-5'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-5'>#</a>
-      </div>
-      <hr />
-<p><strong>initPrefs</strong> opens the local preferences file and reads it into the
-main array.  Uses a default name if no file name is provided; saves
-the name for use when saving changes.</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::initPrefs <span class="k">{{</span><span class="nv">prefFile</span> <span class="s2">&quot;./prefs.ini&quot;</span><span class="k">}}</span> <span class="k">{</span>
-   <span class="k">set</span> <span class="o">::</span>PrefMgr::prefFileName <span class="nv">$prefFile</span>
-   <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>loadPrefFile <span class="nv">$prefFile</span> <span class="o">::</span>PrefMgr::preferences
-   <span class="k">set</span> <span class="o">::</span>PrefMgr::initDone true
-<span class="k">}</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
   <div class='section' id='section-6'>
     <div class='docs'>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-6'>#</a>
       </div>
       <hr />
-<p><strong>getPref</strong> is a simple fetch from the preferences array, but we
-have to handle it gracefully if the key doesn't exist.  In case
-the user grabbed it from the wrong array, check the system
-array first, which returns whatever the programmer defined as
-the default if it fails too.  If there was no default, return
-a null string.</p>
+<p><em>initPrefs</em> opens the local preferences file and reads it into the
+main array.  Uses a default name if no file name is provided; saves
+the name for use when saving changes.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::initPrefs <span class="k">{{</span><span class="nv">prefFile</span> <span class="s2">&quot;./prefs.ini&quot;</span><span class="k">}}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::prefFileName <span class="nv">$prefFile</span>
+   <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>_loadPrefFile <span class="nv">$prefFile</span> <span class="o">::</span>PrefMgr::preferences
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::initDone true
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-7'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-7'>#</a>
+      </div>
+      <hr />
+<p><em>getPref</em> is a simple fetch from the preferences array, but we
+have to handle it gracefully if the key doesn't exist.  First, in
+case the user grabbed it from the wrong array, check the system
+array, which will return the value passed in as the default if it
+fails too. Finally, if there was no default, return a null string.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::getPref <span class="k">{</span><span class="nv">key</span> <span class="k">{</span><span class="nv">default</span> <span class="s2">&quot;&quot;</span><span class="k">}}</span> <span class="k">{</span>
@@ -258,13 +273,13 @@ a null string.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-7'>
+  <div class='section' id='section-8'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-7'>#</a>
+        <a class='octothorpe' href='#section-8'>#</a>
       </div>
       <hr />
-<p><strong>getSysPref</strong> is the same as getPref, but only looks in the system
+<p><em>getSysPref</em> is the same as getPref, but only looks in the system
 preferences array.  If the key doesn't exist, return whatever the
 programmer defined as the default.  If there was no default,
 return a null string.</p>
@@ -286,13 +301,13 @@ return a null string.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-8'>
+  <div class='section' id='section-9'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-8'>#</a>
+        <a class='octothorpe' href='#section-9'>#</a>
       </div>
       <hr />
-<p><strong>setPref</strong> stores the value into the array, then the array must be flushed
+<p><em>setPref</em> stores the value into the array, then the array must be flushed
 out to the file.  We do not want to rely on a clean exit to write this out.</p>
     </div>
     <div class='code'>
@@ -301,26 +316,7 @@ out to the file.  We do not want to rely on a clean exit to write this out.</p>
    <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
       <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;set app key = $key, value = $value&quot;</span>
    <span class="k">}</span>
-   <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>dumpPrefFile <span class="nv">$::PrefMgr::prefFileName</span> <span class="o">::</span>PrefMgr::preferences
-<span class="k">}</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-9'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-9'>#</a>
-      </div>
-      <p><strong>setSysPref</strong> is the same as setPref, but writes to the system
-file, not the local one.</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::setSysPref <span class="k">{</span><span class="nv">key</span> value<span class="k">}</span> <span class="k">{</span>
-   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysPreferences<span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="nv">$value</span>
-   <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
-      <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;set sys key = $key, value = $value&quot;</span>
-   <span class="k">}</span>
-   <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>dumpPrefFile <span class="nv">$::PrefMgr::sysFileName</span> <span class="o">::</span>PrefMgr::sysPreferences
+   <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>_dumpPrefFile <span class="nv">$::PrefMgr::prefFileName</span> <span class="o">::</span>PrefMgr::preferences
 <span class="k">}</span></pre></div>
     </div>
   </div>
@@ -331,7 +327,27 @@ file, not the local one.</p>
         <a class='octothorpe' href='#section-10'>#</a>
       </div>
       <hr />
-<p><strong>showPrefs</strong> displays all key/value pairs, sorted alphabetically.</p>
+<p><em>setSysPref</em> is the same as setPref, but writes to the system
+file, not the local one.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::setSysPref <span class="k">{</span><span class="nv">key</span> value<span class="k">}</span> <span class="k">{</span>
+   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysPreferences<span class="k">(</span><span class="nv">$key</span><span class="k">)</span> <span class="nv">$value</span>
+   <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
+      <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;set sys key = $key, value = $value&quot;</span>
+   <span class="k">}</span>
+   <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>_dumpPrefFile <span class="nv">$::PrefMgr::sysFileName</span> <span class="o">::</span>PrefMgr::sysPreferences
+<span class="k">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-11'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-11'>#</a>
+      </div>
+      <hr />
+<p><em>showPrefs</em> displays all key/value pairs, sorted alphabetically.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::showPrefs <span class="k">{}</span> <span class="k">{</span>
@@ -362,64 +378,26 @@ file, not the local one.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-11'>
+  <div class='section' id='section-12'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-11'>#</a>
+        <a class='octothorpe' href='#section-12'>#</a>
       </div>
       <hr />
 <p>--------------&gt;  Run on load - don't wait for init  &lt;-------------</p>
-<p>When the module is loaded, try to open the system preferences file at once.
-Don't wait for invocation.  But only do it once.  sysInitDone marks it as run.</p>
+<p>When the package is loaded, try to open the system preferences file at once.
+Don't wait for invocation. But only do it once. <em>sysInitDone</em> marks it as run.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre><span class="k">proc</span> <span class="o">::</span>PrefMgr::runOnLoad <span class="k">{}</span> <span class="k">{</span>
    <span class="k">if</span> <span class="k">{</span><span class="nv">$::PrefMgr::debug</span><span class="k">}</span> <span class="k">{</span>
       <span class="nb">puts</span> <span class="s2">&quot;\tPrefMgr.tcl loading\n&quot;</span>
    <span class="k">}</span>
-   <span class="k">set</span> <span class="o">::</span>PrefMgr::sysDiscoverLoaded false
-   <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::sysInitDone<span class="k">]}</span> <span class="k">{</span>
+   <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">([</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::sysInitDone<span class="k">]</span> <span class="o">&amp;&amp;</span> <span class="nv">$::PrefMgr::sysInitDone</span><span class="k">)}</span> <span class="k">{</span>
       <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">info</span> exists <span class="o">::</span>PrefMgr::DebugHandle<span class="k">]}</span> <span class="k">{</span>
          <span class="k">set</span> <span class="o">::</span>PrefMgr::DebugHandle stderr
       <span class="k">}</span>
-      <span class="k">set</span> <span class="o">::</span>PrefMgr::sysInitDone true
-      <span class="k">set</span> <span class="o">::</span>PrefMgr::initDone false
-      <span class="k">set</span> updateSysFile false</pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-12'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-12'>#</a>
-      </div>
-      <p>The system preferences used to be stored in "~/.sysprefs", which
-worked correctly under Cygwin but failed under Windows or when wrapped.
-It's been moved to "$LOCALAPPDATA/sysprefs.ini", which should work
-in both environments.  To help the transition, if a file is not found in
-the new place we will check the old one as well, and if the file is
-found in the old place we will read it, then mark it to be saved in
-the new place.</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>      <span class="k">set</span> sysFileName <span class="nv">$::PrefMgr::sysFileName</span>
-      <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">file</span> exists <span class="nv">$::PrefMgr::sysFileName</span><span class="k">]}</span> <span class="k">{</span>
-         <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;Default system preferences file \</span>
-<span class="s2">               ($sysFileName) not found.&quot;</span>
-         <span class="k">if</span> <span class="k">{[</span><span class="nb">file</span> exists <span class="s2">&quot;~/.sysprefs&quot;</span><span class="k">]}</span> <span class="k">{</span>
-            <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;Found preferences in old location \</span>
-<span class="s2">                  (~/.sysprefs).  Will copy to new location...&quot;</span>
-            <span class="k">set</span> sysFileName <span class="s2">&quot;~/.sysprefs&quot;</span>
-            <span class="k">set</span> updateSysFile true
-         <span class="k">}</span> <span class="k">else</span> <span class="k">{</span>
-            <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;Creating new empty file in default \</span>
-<span class="s2">                  location ($sysFileName)&quot;</span>
-            <span class="k">set</span> prefsHandle <span class="k">[</span><span class="nb">open</span> <span class="nv">$::PrefMgr::sysFileName</span> w<span class="k">]</span>
-            <span class="nb">close</span> <span class="nv">$prefsHandle</span>
-            <span class="k">return</span>
-         <span class="k">}</span>
-      <span class="k">}</span>
-      <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>loadPrefFile <span class="nv">$sysFileName</span> <span class="o">::</span>PrefMgr::sysPreferences</pre></div>
+      <span class="k">set</span> <span class="o">::</span>PrefMgr::initDone false</pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -428,14 +406,23 @@ the new place.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-13'>#</a>
       </div>
-      <p>If we detected above that the system preferences file needed to
-be moved, save it now in its final place.</p>
+      <p>If the system preferences file does not exist, create an empty file
+in the canonical location for us to find in the future.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>      <span class="k">if</span> <span class="k">{</span><span class="nv">$updateSysFile</span><span class="k">}</span> <span class="k">{</span>
-         <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>dumpPrefFile <span class="nv">$::PrefMgr::sysFileName</span> <span class="err">\</span>
-               <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>sysPreferences
+      <div class="highlight"><pre>      <span class="k">set</span> sysFileName <span class="nv">$::PrefMgr::sysFileName</span>
+      <span class="k">if</span> <span class="k">{</span><span class="o">!</span><span class="k">[</span><span class="nb">file</span> exists <span class="nv">$::PrefMgr::sysFileName</span><span class="k">]}</span> <span class="k">{</span>
+         <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;Default system preferences file \</span>
+<span class="s2">               ($sysFileName) not found.&quot;</span>
+         <span class="nb">puts</span> <span class="nv">$::PrefMgr::DebugHandle</span> <span class="s2">&quot;Creating new empty file in default \</span>
+<span class="s2">               location ($sysFileName)&quot;</span>
+         <span class="k">set</span> prefsHandle <span class="k">[</span><span class="nb">open</span> <span class="nv">$::PrefMgr::sysFileName</span> w<span class="k">]</span>
+         <span class="nb">close</span> <span class="nv">$prefsHandle</span>
+         <span class="k">set</span> <span class="o">::</span>PrefMgr::sysInitDone true
+         <span class="k">return</span>
       <span class="k">}</span>
+      <span class="o">::</span><span class="nv">PrefMgr</span><span class="o">::</span>_loadPrefFile <span class="nv">$sysFileName</span> <span class="o">::</span>PrefMgr::sysPreferences
+      <span class="k">set</span> <span class="o">::</span>PrefMgr::sysInitDone true
    <span class="k">}</span>
 <span class="k">}</span>
 

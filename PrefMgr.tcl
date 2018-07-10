@@ -2,7 +2,7 @@
 #
 # FILENAME:    PrefMgr.tcl
 #
-# AUTHOR:      ejohnson
+# AUTHOR:      theerik@github
 #
 # DESCRIPTION:  Preferences Manager provides methods for setting and
 #               retrieving persistent data values.  Two classes of data are
@@ -13,11 +13,16 @@
 #
 #--------------------------------------------------------------------------
 #
-# Copyright 2010-2013, Erik N. Johnson 
+# Copyright 2010-2017, Erik N. Johnson
 #
-#--------------------------------------------------------------------------
+# This package documentation is auto-generated with
+# Pycco: <https://pycco-docs.github.io/pycco/>
+#
+# Use "pycco filename" to re-generate HTML documentation in ./docs .
+#
+# #########################################################################
 
-package provide PrefMgr 0.7
+package provide PrefMgr 0.7.1
 
 namespace eval PrefMgr {
    variable preferences
@@ -36,29 +41,25 @@ namespace eval PrefMgr {
 set ::PrefMgr::packageDir [file dirname [info script]]
 
 #--------------------------------------------------------------------------
-# The preferences files will be stored in canonical locations.
+# The preferences files are stored in canonical locations.
 #
-# The system preferences will be in $env(LOCALAPPDATA)/sysprefs.ini,
+# The system preferences will be in *$env(LOCALAPPDATA)/sysprefs.ini*,
 # which is guaranteed to be defined in Windows and inherited for Cygwin,
 # and is common for the system.
 #
-# Update (v. 0.6): $env(LOCALAPPDATA) is only defined for Windows 7.  For
-# XP, the environment variable is $env(APPDATA), which in Win7 is in the
+# Update (v. 0.6): *$env(LOCALAPPDATA)* is only defined for Windows 7.  For
+# XP, the environment variable is *$env(APPDATA)*, which in Win7 is in the
 # "Roaming" subdirectory, following the user rather than the system.  Sigh.
 # Since system preferences are explicitly local to the system and should
 # NOT follow a user account, we'll look for LOCALAPPDATA first, then fail
 # over to APPDATA.  Hopefully Vista should be OK with one of the two, but
 # I don't have a Vista system to check it, so for now I'm just assuming.
 # (Update: run on a friend's system, works correctly.)
-# Also, for non-Windows systems, add env(HOME) and a final *nix failover
+# Also, for non-Windows systems, add *env(HOME)* and a final *nix failover
 # of ~/.  I have no idea what a Mac does, so I hope this is enough.
+# Update (post v. 0.7): Now on Win 10, and LOCALAPPDATA continues to work.
+# Still don't have a Mac to test on.
 #
-# Application preferences will be in whatever file the main application
-# defines when calling initPrefs (defaults to ./prefs.ini) and since
-# it's normally unique to the current directory, a given tool run in
-# different directories can have different saved preferences.  The app
-# preferences filename can be overridden when initPrefs is called, and
-# should be overridden to be unique for each app using the package.
 #
 if {[info exists ::env(LOCALAPPDATA)]} {
    set ::PrefMgr::sysFileName [file join {*}[file split $::env(LOCALAPPDATA)] \
@@ -72,21 +73,27 @@ if {[info exists ::env(LOCALAPPDATA)]} {
 } else {
    set ::PrefMgr::sysFileName [file join "~" "sysprefs.ini"]
 }
+
+# Application preferences will be in whatever file the main application
+# defines when calling initPrefs (defaults to ./prefs.ini) and since
+# it's normally unique to the current directory, a given tool run in
+# different directories can have different saved preferences.  The app
+# preferences filename can be overridden when initPrefs is called, and
+# *should* be overridden to be unique for each app using the package.
 if {![info exists ::PrefMgr::prefFileName]} {
    set ::PrefMgr::prefFileName "prefs.ini"
 }
 
 #--------------------------------------------------------------------------
-# Only init debug flag if user did not already set it, allowing user to
+# Only init the debug flag if user did not already set it, allowing user to
 # pre-enable the debug flag when loading the package to debug load issues.
-# This requires the user to add an extra line of code to deal with 
+# This requires the user to add an extra line of code to deal with
 # the namespace issues:
 #
-# `namespace eval PrefMgr {variable debug}`
+#     namespace eval PrefMgr {variable debug}
+#     set ::PrefMgr::debug true
 #
-# `set ::PrefMgr::debug true`
-#
-# For non-load-time debugging, the **setDebug** method allows the package user
+# For non-load-time debugging, the *setDebug* method allows the package user
 # to dynamically enable debugging.
 #
 if {![info exists ::PrefMgr::debug]} {
@@ -98,7 +105,7 @@ proc ::PrefMgr::setDebug {{debugFlag false}} {
 }
 
 #--------------------------------------------------------------------------
-# **loadPrefFile** is a helper proc that opens the input file and loads
+# *_loadPrefFile* is a helper proc that opens the input file and loads
 # the contents into an array.  The name of the array is passed in to upvar
 # it to support either the local or the system preferences files.
 #
@@ -147,7 +154,7 @@ proc ::PrefMgr::_loadPrefFile {fname arrayName} {
 }
 
 #--------------------------------------------------------------------------
-# **dumpPrefFile** is a helper proc that opens the output file, writes
+# *_dumpPrefFile* is a helper proc that opens the output file, writes
 # out the values of the preferences array, and closes the file again.
 #
 proc ::PrefMgr::_dumpPrefFile {fname arrayName} {
@@ -170,23 +177,22 @@ proc ::PrefMgr::_dumpPrefFile {fname arrayName} {
 }
 
 #--------------------------------------------------------------------------
-# **initPrefs** opens the local preferences file and reads it into the
+# *initPrefs* opens the local preferences file and reads it into the
 # main array.  Uses a default name if no file name is provided; saves
 # the name for use when saving changes.
 #
 proc ::PrefMgr::initPrefs {{prefFile "./prefs.ini"}} {
    set ::PrefMgr::prefFileName $prefFile
-   ::PrefMgr::loadPrefFile $prefFile ::PrefMgr::preferences
+   ::PrefMgr::_loadPrefFile $prefFile ::PrefMgr::preferences
    set ::PrefMgr::initDone true
 }
 
 #--------------------------------------------------------------------------
-# **getPref** is a simple fetch from the preferences array, but we
-# have to handle it gracefully if the key doesn't exist.  In case
-# the user grabbed it from the wrong array, check the system
-# array first, which returns whatever the programmer defined as
-# the default if it fails too.  If there was no default, return
-# a null string.
+# *getPref* is a simple fetch from the preferences array, but we
+# have to handle it gracefully if the key doesn't exist.  First, in
+# case the user grabbed it from the wrong array, check the system
+# array, which will return the value passed in as the default if it
+# fails too. Finally, if there was no default, return a null string.
 #
 proc ::PrefMgr::getPref {key {default ""}} {
    if {!$::PrefMgr::initDone} {
@@ -203,7 +209,7 @@ proc ::PrefMgr::getPref {key {default ""}} {
 }
 
 #--------------------------------------------------------------------------
-# **getSysPref** is the same as getPref, but only looks in the system
+# *getSysPref* is the same as getPref, but only looks in the system
 # preferences array.  If the key doesn't exist, return whatever the
 # programmer defined as the default.  If there was no default,
 # return a null string.
@@ -223,7 +229,7 @@ proc ::PrefMgr::getSysPref {key {default ""}} {
 }
 
 #--------------------------------------------------------------------------
-# **setPref** stores the value into the array, then the array must be flushed
+# *setPref* stores the value into the array, then the array must be flushed
 # out to the file.  We do not want to rely on a clean exit to write this out.
 #
 proc ::PrefMgr::setPref {key value} {
@@ -231,10 +237,11 @@ proc ::PrefMgr::setPref {key value} {
    if {$::PrefMgr::debug} {
       puts $::PrefMgr::DebugHandle "set app key = $key, value = $value"
    }
-   ::PrefMgr::dumpPrefFile $::PrefMgr::prefFileName ::PrefMgr::preferences
+   ::PrefMgr::_dumpPrefFile $::PrefMgr::prefFileName ::PrefMgr::preferences
 }
 
-# **setSysPref** is the same as setPref, but writes to the system
+#--------------------------------------------------------------------------
+# *setSysPref* is the same as setPref, but writes to the system
 # file, not the local one.
 #
 proc ::PrefMgr::setSysPref {key value} {
@@ -242,11 +249,11 @@ proc ::PrefMgr::setSysPref {key value} {
    if {$::PrefMgr::debug} {
       puts $::PrefMgr::DebugHandle "set sys key = $key, value = $value"
    }
-   ::PrefMgr::dumpPrefFile $::PrefMgr::sysFileName ::PrefMgr::sysPreferences
+   ::PrefMgr::_dumpPrefFile $::PrefMgr::sysFileName ::PrefMgr::sysPreferences
 }
 
 #--------------------------------------------------------------------------
-# **showPrefs** displays all key/value pairs, sorted alphabetically.
+# *showPrefs* displays all key/value pairs, sorted alphabetically.
 #
 proc ::PrefMgr::showPrefs {} {
    set sortList {}
@@ -277,54 +284,34 @@ proc ::PrefMgr::showPrefs {} {
 #--------------------------------------------------------------------------
 # -------------->  Run on load - don't wait for init  <-------------
 #
-# When the module is loaded, try to open the system preferences file at once.
-# Don't wait for invocation.  But only do it once.  sysInitDone marks it as run.
+# When the package is loaded, try to open the system preferences file at once.
+# Don't wait for invocation. But only do it once. *sysInitDone* marks it as run.
 #
 proc ::PrefMgr::runOnLoad {} {
    if {$::PrefMgr::debug} {
       puts "\tPrefMgr.tcl loading\n"
    }
-   set ::PrefMgr::sysDiscoverLoaded false
-   if {![info exists ::PrefMgr::sysInitDone]} {
+   if {!([info exists ::PrefMgr::sysInitDone] && $::PrefMgr::sysInitDone)} {
       if {![info exists ::PrefMgr::DebugHandle]} {
          set ::PrefMgr::DebugHandle stderr
       }
-      set ::PrefMgr::sysInitDone true
       set ::PrefMgr::initDone false
-      set updateSysFile false
 
-      # The system preferences used to be stored in "~/.sysprefs", which
-      # worked correctly under Cygwin but failed under Windows or when wrapped.
-      # It's been moved to "$LOCALAPPDATA/sysprefs.ini", which should work
-      # in both environments.  To help the transition, if a file is not found in
-      # the new place we will check the old one as well, and if the file is
-      # found in the old place we will read it, then mark it to be saved in
-      # the new place.
+      # If the system preferences file does not exist, create an empty file
+      # in the canonical location for us to find in the future.
       set sysFileName $::PrefMgr::sysFileName
       if {![file exists $::PrefMgr::sysFileName]} {
          puts $::PrefMgr::DebugHandle "Default system preferences file \
                ($sysFileName) not found."
-         if {[file exists "~/.sysprefs"]} {
-            puts $::PrefMgr::DebugHandle "Found preferences in old location \
-                  (~/.sysprefs).  Will copy to new location..."
-            set sysFileName "~/.sysprefs"
-            set updateSysFile true
-         } else {
-            puts $::PrefMgr::DebugHandle "Creating new empty file in default \
-                  location ($sysFileName)"
-            set prefsHandle [open $::PrefMgr::sysFileName w]
-            close $prefsHandle
-            return
-         }
+         puts $::PrefMgr::DebugHandle "Creating new empty file in default \
+               location ($sysFileName)"
+         set prefsHandle [open $::PrefMgr::sysFileName w]
+         close $prefsHandle
+         set ::PrefMgr::sysInitDone true
+         return
       }
-      ::PrefMgr::loadPrefFile $sysFileName ::PrefMgr::sysPreferences
-
-      # If we detected above that the system preferences file needed to
-      # be moved, save it now in its final place.
-      if {$updateSysFile} {
-         ::PrefMgr::dumpPrefFile $::PrefMgr::sysFileName \
-               ::PrefMgr::sysPreferences
-      }
+      ::PrefMgr::_loadPrefFile $sysFileName ::PrefMgr::sysPreferences
+      set ::PrefMgr::sysInitDone true
    }
 }
 

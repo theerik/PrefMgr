@@ -13,4 +13,4 @@
 #
 #==========================================================================
 
-package ifneeded PrefMgr 0.7 [list source [file join $dir PrefMgr.tcl]]
+package ifneeded PrefMgr 0.7.1 [list source [file join $dir PrefMgr.tcl]]
